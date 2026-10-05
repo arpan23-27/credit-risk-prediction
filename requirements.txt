@@ -1,0 +1,21 @@
+# core (training + tests)
+pandas>=2.2
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.5
+xgboost>=2.0
+joblib>=1.3
+
+# notebook only
+matplotlib>=3.8
+seaborn>=0.13
+shap>=0.45
+imbalanced-learn>=0.12
+
+# tests
+pytest>=8.0
+
+# api
+fastapi>=0.110
+uvicorn[standard]>=0.29
+httpx>=0.27
