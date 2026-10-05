@@ -1,0 +1,54 @@
+{
+  "decision_threshold": 0.34,
+  "threshold_applies_to": "raw (uncalibrated) probability from credit_risk_xgb.joblib",
+  "cost_fn": 5.0,
+  "cost_fp": 1.0,
+  "calibration_method": "isotonic",
+  "seed": 42,
+  "n_iter": 50,
+  "best_cv_pr_auc": 0.9045970951149511,
+  "best_params": {
+    "colsample_bytree": 0.8493192507310232,
+    "gamma": 1.654490124263246,
+    "learning_rate": 0.04177917514301182,
+    "max_depth": 8,
+    "min_child_weight": 8,
+    "n_estimators": 442,
+    "subsample": 0.8918424713352255
+  },
+  "numeric_cols": [
+    "person_age",
+    "person_income",
+    "person_emp_length",
+    "loan_amnt",
+    "loan_int_rate",
+    "loan_percent_income",
+    "cb_person_cred_hist_length"
+  ],
+  "categorical_cols": [
+    "person_home_ownership",
+    "loan_intent",
+    "loan_grade",
+    "cb_person_default_on_file"
+  ],
+  "test_metrics": {
+    "threshold": 0.34,
+    "roc_auc": 0.9538617960904373,
+    "pr_auc": 0.9132118459839226,
+    "precision": 0.6654074473826228,
+    "recall": 0.8695345557122708,
+    "f1": 0.7538978905533475,
+    "false_positives": 620,
+    "false_negatives": 185,
+    "avg_cost_per_applicant": 0.23835236038259797,
+    "brier_raw": 0.060885366052389145,
+    "brier_calibrated": 0.04966200801947988
+  },
+  "versions": {
+    "python": "3.12.6",
+    "scikit-learn": "1.9.1",
+    "xgboost": "3.4.1",
+    "pandas": "3.0.6",
+    "numpy": "2.5.3"
+  }
+}
