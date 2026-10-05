@@ -2,7 +2,7 @@ import json
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-
+from fastapi.staticfiles import StaticFiles
 import numpy as np
 import pandas as pd
 
@@ -54,3 +54,5 @@ def predict(applicant: ApplicantIn):
         decision="high_risk" if raw >= threshold else "low_risk",
         threshold=threshold,
     )
+    
+app.mount("/", StaticFiles(directory=ROOT / "app" / "static", html=True), name="static")

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credit Risk Demo</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2230; --muted:#5b6475; --line:#d9dde5;
+          --accent:#2457d6; --good:#1b7f4b; --bad:#b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12151c; --card:#1b2030; --text:#e8ebf3; --muted:#9aa3b5; --line:#2d3446;
+            --accent:#6c93ff; --good:#4cc38a; --bad:#ff7b72; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width:760px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:1.5rem; margin:0 0 4px; }
+  p.sub { color:var(--muted); margin:0 0 20px; }
+  form, .result { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px 16px; }
+  @media (max-width:560px) { .grid { grid-template-columns:1fr; } }
+  label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:4px; }
+  input, select { width:100%; padding:9px 10px; font:inherit; color:var(--text);
+                  background:var(--bg); border:1px solid var(--line); border-radius:8px; }
+  input:focus, select:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  small { color:var(--muted); font-size:.75rem; }
+  button { margin-top:18px; padding:10px 18px; font:inherit; font-weight:600; color:#fff;
+           background:var(--accent); border:0; border-radius:8px; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:wait; }
+  .result { margin-top:20px; display:none; }
+  .result.show { display:block; }
+  .big { font-size:2.2rem; font-weight:700; margin:0; }
+  .tag { display:inline-block; padding:3px 12px; border-radius:999px; font-weight:600; font-size:.9rem; }
+  .tag.low_risk { color:var(--good); border:1px solid var(--good); }
+  .tag.high_risk { color:var(--bad); border:1px solid var(--bad); }
+  .note { color:var(--muted); font-size:.85rem; margin-top:12px; }
+  .error { color:var(--bad); margin-top:12px; white-space:pre-wrap; }
+  footer { color:var(--muted); font-size:.8rem; margin-top:24px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Credit Risk Demo</h1>
+  <p class="sub">Enter an applicant's details to see the model's estimated default risk.</p>
+
+  <form id="form">
+    <div class="grid">
+      <div><label for="person_age">Age</label>
+        <input id="person_age" type="number" min="18" max="100" required value="30"></div>
+      <div><label for="person_income">Annual income</label>
+        <input id="person_income" type="number" min="1" required value="60000"></div>
+
+      <div><label for="person_home_ownership">Home ownership</label>
+        <select id="person_home_ownership">
+          <option>RENT</option><option>OWN</option><option>MORTGAGE</option><option>OTHER</option>
+        </select></div>
+      <div><label for="person_emp_length">Employment length (years)</label>
+        <input id="person_emp_length" type="number" min="0" max="60" step="0.5" placeholder="optional" value="5"></div>
+
+      <div><label for="loan_intent">Loan purpose</label>
+        <select id="loan_intent">
+          <option>PERSONAL</option><option>EDUCATION</option><option>MEDICAL</option>
+          <option>VENTURE</option><option>HOMEIMPROVEMENT</option><option>DEBTCONSOLIDATION</option>
+        </select></div>
+      <div><label for="loan_grade">Loan grade</label>
+        <select id="loan_grade">
+          <option>A</option><option>B</option><option selected>C</option><option>D</option>
+          <option>E</option><option>F</option><option>G</option>
+        </select></div>
+
+      <div><label for="loan_amnt">Loan amount</label>
+        <input id="loan_amnt" type="number" min="1" required value="10000"></div>
+      <div><label for="loan_int_rate">Interest rate (%)</label>
+        <input id="loan_int_rate" type="number" min="0" max="40" step="0.01" placeholder="optional" value="11"></div>
+
+      <div><label for="cb_person_default_on_file">Previous default on file?</label>
+        <select id="cb_person_default_on_file"><option value="N">No</option><option value="Y">Yes</option></select></div>
+      <div><label for="cb_person_cred_hist_length">Credit history length (years)</label>
+        <input id="cb_person_cred_hist_length" type="number" min="0" max="60" required value="6"></div>
+    </div>
+    <button id="submit" type="submit">Estimate risk</button>
+    <div id="error" class="error"></div>
+  </form>
+
+  <section id="result" class="result" aria-live="polite">
+    <p class="sub" style="margin:0">Estimated probability of default</p>
+    <p class="big" id="risk">–</p>
+    <p><span id="decision" class="tag"></span></p>
+    <p class="note" id="note"></p>
+  </section>
+
+  <footer>Educational portfolio project. Trained on a public dataset; not for real lending decisions.</footer>
+</main>
+
+<script>
+const form = document.getElementById("form");
+const btn = document.getElementById("submit");
+const errBox = document.getElementById("error");
+const result = document.getElementById("result");
+
+const NUMBERS = ["person_age","person_income","person_emp_length","loan_amnt",
+                 "loan_int_rate","cb_person_cred_hist_length"];
+const TEXTS = ["person_home_ownership","loan_intent","loan_grade","cb_person_default_on_file"];
+
+function readForm() {
+  const body = {};
+  for (const id of NUMBERS) {
+    const v = document.getElementById(id).value;
+    body[id] = v === "" ? null : Number(v);   // empty optional field -> null -> imputed by the model
+  }
+  for (const id of TEXTS) body[id] = document.getElementById(id).value;
+  return body;
+}
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  errBox.textContent = "";
+  btn.disabled = true;
+  try {
+    const res = await fetch("/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(readForm()),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msgs = (data.detail || []).map(d => `${d.loc.slice(-1)[0]}: ${d.msg}`);
+      throw new Error(msgs.join("\n") || "Request failed");
+    }
+    document.getElementById("risk").textContent = (data.risk_probability * 100).toFixed(1) + "%";
+    const tag = document.getElementById("decision");
+    tag.textContent = data.decision === "high_risk" ? "High risk: review" : "Low risk";
+    tag.className = "tag " + data.decision;
+    document.getElementById("note").textContent =
+      "The decision compares the model's raw score to a cost-based cutoff of " + data.threshold +
+      " (a missed defaulter is treated as 5x worse than a wrongly rejected good customer). " +
+      "The percentage shown is the calibrated probability, so the two can look different.";
+    result.classList.add("show");
+  } catch (err) {
+    errBox.textContent = err.message;
+    result.classList.remove("show");
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
